@@ -2,7 +2,6 @@
 #![no_main]
 
 extern crate alloc;
-extern crate panic_halt;
 
 use core::arch::global_asm;
 use core::ffi::c_void;
@@ -135,4 +134,13 @@ unsafe fn get_instance() -> Option<&'static mut Instance> {
         }
     }
     None
+}
+
+#[cfg(not(test))]
+use core::panic::PanicInfo;
+
+#[cfg(not(test))]
+#[panic_handler]
+fn panic(_info: &PanicInfo) -> ! {
+    loop {}
 }

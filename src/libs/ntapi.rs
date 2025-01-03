@@ -335,6 +335,63 @@ impl NtReadFile {
     }
 }
 
+pub struct NtQueryInformationProcess {
+    pub syscall: NtSyscall,
+}
+
+unsafe impl Sync for NtQueryInformationProcess {}
+
+impl NtQueryInformationProcess {
+    pub const fn new() -> Self {
+        Self {
+            syscall: NtSyscall::new(0x8cdc5dc2),
+        }
+    }
+
+    /// Wrapper for the NtQueryInformationProcess
+    ///
+    /// # Safety
+    ///
+    /// This function is unsafe because it dereferences the `process_handle`, `process_information`,
+    /// and `return_length` pointers.
+    ///
+    /// The caller must ensure that the pointers are valid and that the memory they point to is
+    /// valid and has the correct size.
+    ///
+    /// # Arguments
+    ///
+    /// * `[in]` - `process_handle` A handle to the process.
+    /// * `[in]` - `process_information_class` The class of information to be queried.
+    /// * `[out]` - `process_information` A pointer to a buffer that receives the requested
+    ///   information.
+    /// * `[in]` - `process_information_length` The size, in bytes, of the buffer pointed to by the
+    ///   `process_information` parameter.
+    /// * `[out, opt]` - `return_length` A pointer to a variable that receives the size, in bytes,
+    ///   of the data returned.
+    ///
+    /// # Returns
+    ///
+    /// * `i32` - The NTSTATUS code of the operation.
+    pub unsafe fn run(
+        &self,
+        process_handle: *mut c_void,
+        process_information_class: u32,
+        process_information: *mut c_void,
+        process_information_length: u32,
+        return_length: *mut u32,
+    ) -> i32 {
+        run_syscall!(
+            self.syscall.number,
+            self.syscall.address as usize,
+            process_handle,
+            process_information_class,
+            process_information,
+            process_information_length,
+            return_length
+        )
+    }
+}
+
 /// Type definition for the LdrLoadDll function.
 ///
 /// Loads a DLL into the address space of the calling process.
@@ -364,6 +421,7 @@ pub struct NtDll {
     pub nt_open_file: NtOpenFile,
     pub nt_write_file: NtWriteFile,
     pub nt_read_file: NtReadFile,
+    pub nt_query_information_process: NtQueryInformationProcess,
 }
 
 impl NtDll {
@@ -378,6 +436,7 @@ impl NtDll {
             nt_open_file: NtOpenFile::new(),
             nt_write_file: NtWriteFile::new(),
             nt_read_file: NtReadFile::new(),
+            nt_query_information_process: NtQueryInformationProcess::new(),
         }
     }
 }
@@ -447,6 +506,14 @@ pub fn init_ntdll_funcs() {
         );
         instance.ntdll.nt_read_file.syscall.number =
             get_ssn(instance.ntdll.nt_read_file.syscall.address);
+
+        // NtQueryInformationProcess
+        instance.ntdll.nt_query_information_process.syscall.address = ldr_function(
+            instance.ntdll.module_base,
+            instance.ntdll.nt_query_information_process.syscall.hash,
+        );
+        instance.ntdll.nt_query_information_process.syscall.number =
+            get_ssn(instance.ntdll.nt_query_information_process.syscall.address);
 
         // LdrLoadDll
         let ldr_load_dll_addr = ldr_function(instance.ntdll.module_base, LDR_LOAD_DLL_H);

