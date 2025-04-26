@@ -22,7 +22,7 @@ use super::{
 /// This function sets up a named pipe with specified security attributes, buffer size,
 /// and other options. It creates the pipe with both read and write handles, making it
 /// ready for inter-process communication using the `NtCreateNamedPipeFile` NT API function.
-pub unsafe fn nt_create_named_pipe_file(
+pub fn nt_create_named_pipe_file(
     h_read_pipe: &mut *mut c_void,
     h_write_pipe: &mut *mut c_void,
     lp_pipe_attributes: *mut SecurityAttributes,
@@ -45,7 +45,7 @@ pub unsafe fn nt_create_named_pipe_file(
 
     // Format the pipe name using the process ID and pipe ID
     let pipe_name_utf16 = format_named_pipe_string(
-        nt_current_teb().as_ref().unwrap().client_id.unique_process as usize,
+        unsafe { nt_current_teb().as_ref().unwrap().client_id.unique_process } as usize,
         pipe_id,
     );
 
@@ -58,10 +58,10 @@ pub unsafe fn nt_create_named_pipe_file(
     // Check if custom security attributes were provided
     if !lp_pipe_attributes.is_null() {
         // Use the provided security descriptor
-        security_descriptor = (*lp_pipe_attributes).lp_security_descriptor;
+        security_descriptor = unsafe { (*lp_pipe_attributes).lp_security_descriptor };
 
         // Set the OBJ_INHERIT flag if handle inheritance is requested
-        if (*lp_pipe_attributes).b_inherit_handle {
+        if unsafe { (*lp_pipe_attributes).b_inherit_handle } {
             attributes |= OBJ_INHERIT;
         }
     }

@@ -2,8 +2,15 @@
 skip_core_tasks = true
 
 [env]
-TARGET = "x86_64-pc-windows-gnu"
-RUSTFLAGS = "-C link-arg=-nostdlib -C codegen-units=1 -C link-arg=-fno-ident -C link-arg=-fpack-struct=8 -C link-arg=-Wl,--gc-sections -C link-arg=-falign-jumps=1 -C link-arg=-w -C link-arg=-falign-labels=1 -C relocation-model=pic -C link-arg=-Wl,-T./Linker.ld,--build-id=none -C link-arg=-Wl,-s,--no-seh,--enable-stdcall-fixup -C link-arg=-Wl,--subsystem,console -C link-arg=-nostartfiles -C link-arg=-Wl,-e_start"
+NIGHTLY_VERSION = "nightly-2025-02-14"
+OUTPUT_NAME = "Rustic64Shell.exe"
+OUTPUT_BIN = "Rustic64Shell.bin"
+
+TARGET_GNU = "x86_64-pc-windows-gnu"
+RUSTFLAGS_GNU = "-C link-arg=-nostdlib -C codegen-units=1 -C link-arg=-fno-ident -C link-arg=-fpack-struct=8 -C link-arg=-Wl,--gc-sections -C link-arg=-falign-jumps=1 -C link-arg=-w -C link-arg=-falign-labels=1 -C relocation-model=pic -C link-arg=-Wl,-T./Linker.ld,--build-id=none -C link-arg=-Wl,-s,--no-seh,--enable-stdcall-fixup -C link-arg=-Wl,--subsystem,console -C link-arg=-nostartfiles -C link-arg=-Wl,-e_start"
+
+TARGET_MSVC = "x86_64-pc-windows-msvc"
+RUSTFLAGS_MSVC = "-C codegen-units=1 -C strip=symbols -C opt-level=z -C link-arg=/NODEFAULTLIB -C link-arg=/ENTRY:_start -C link-arg=/SUBSYSTEM:CONSOLE -C link-arg=/OPT:REF,ICF -C link-arg=/SAFESEH:NO -C link-arg=/DEBUG:NONE -C link-arg=/FILEALIGN:512 -C link-arg=/ALIGN:16 -C link-arg=/SECTION:.bss,D -C link-arg=/SECTION:.edata,D -C link-arg=/SECTION:.idata,D -C link-arg=/SECTION:.pdata,D -C link-arg=/SECTION:.xdata,D"
 
 [tasks.default]
 description = "Default task that builds the project."
@@ -18,34 +25,54 @@ dependencies = ["clean", "cargo-build", "strip", "objcopy"]
 description = "Cleans the project and removes the binary file."
 script = [
     "cargo clean",
-    "rm -f Rustic64Shell.bin"
+    "rm -f ${OUTPUT_BIN}"
 ]
 
 [tasks.cargo-build]
-description = "Build the project using cargo with custom rustflags."
-command = "cargo"
-args = ["build", "--release", "--target", "${TARGET}"]
-env = { "RUSTFLAGS" = "${RUSTFLAGS}" }
+description = "Builds the project for GNU target using custom Rust flags."
+command = "rustup"
+args = ["run", "${NIGHTLY_VERSION}-x86_64-pc-windows-gnu", "cargo", "rustc", "--target", "${TARGET_GNU}", "--release"]
+env = { "RUSTFLAGS" = "${RUSTFLAGS_GNU}" }
 
 [tasks.strip]
 description = "Strips unnecessary sections from the binary."
 command = "strip"
-args = ["-s", "--strip-unneeded", "-x", "-X", "target/x86_64-pc-windows-gnu/release/Rustic64Shell.exe"]
+args = ["-s", "--strip-unneeded", "-x", "-X", "target/x86_64-pc-windows-gnu/release/${OUTPUT_NAME}"]
 
 [tasks.objcopy]
 description = "Converts the binary to a .bin file using objcopy."
 command = "objcopy"
-args = ["-O", "binary", "target/x86_64-pc-windows-gnu/release/Rustic64Shell.exe", "Rustic64Shell.bin"]
+args = ["-O", "binary", "target/x86_64-pc-windows-gnu/release/${OUTPUT_NAME}", "${OUTPUT_BIN}"]
 
 [tasks.objdump]
 description = "Dumps the binary using objdump."
 dependencies = ["objcopy"]
 command = "objdump"
-args = ["-D", "-b", "binary", "-mi386", "-Mx86-64", "-Mintel", "-z", "Rustic64Shell.bin"]
+args = ["-D", "-b", "binary", "-mi386", "-Mx86-64", "-Mintel", "-z", "${OUTPUT_BIN}"]
 
 [tasks.dump]
 description = "Final dump task to signal completion."
 dependencies = ["objdump"]
 script = [
-    "echo 'Dump completed for Rustic64Shell.bin'"
+    "echo 'Dump completed for ${OUTPUT_BIN}'"
 ]
+
+[tasks.msvc]
+description = "Performs a clean build for MSVC target, strips the binary, and converts it to a .bin file."
+dependencies = ["clean", "cargo-build-msvc", "strip-msvc", "objcopy-msvc"]
+
+[tasks.cargo-build-msvc]
+description = "Builds the project for MSVC target using custom Rust flags."
+command = "rustup"
+args = ["run", "${NIGHTLY_VERSION}-x86_64-pc-windows-msvc", "cargo", "rustc", "--target", "${TARGET_MSVC}", "--release"]
+env = { "RUSTFLAGS" = "${RUSTFLAGS_MSVC}" }
+
+[tasks.strip-msvc]
+description = "Strips unneeded sections from the MSVC binary to reduce size."
+command = "strip"
+args = ["-s", "--strip-unneeded", "-x", "-X", "target/${TARGET_MSVC}/release/${OUTPUT_NAME}"]
+
+[tasks.objcopy-msvc]
+description = "Converts the stripped MSVC binary to a .bin file using objcopy."
+command = "objcopy"
+args = ["-O", "binary", "target/${TARGET_MSVC}/release/${OUTPUT_NAME}", "${OUTPUT_BIN}"]

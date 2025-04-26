@@ -23,7 +23,7 @@ use crate::libs::allocator::NtVirtualAlloc;
 #[global_allocator]
 static GLOBAL: NtVirtualAlloc = NtVirtualAlloc;
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn initialize() {
     unsafe {
         // Stack allocation of Instance
@@ -113,21 +113,21 @@ skip:
 "#
 );
 
-extern "C" {
+unsafe extern "C" {
     fn _start();
 }
 
 /// Attempts to locate the global `Instance` by scanning process heaps and
 /// returns a mutable reference to it if found.
-unsafe fn get_instance() -> Option<&'static mut Instance> {
+fn get_instance() -> Option<&'static mut Instance> {
     let peb = find_peb(); // Locate the PEB (Process Environment Block)
-    let process_heaps = (*peb).process_heaps;
-    let number_of_heaps = (*peb).number_of_heaps as usize;
+    let process_heaps = unsafe { (*peb).process_heaps };
+    let number_of_heaps = unsafe { (*peb).number_of_heaps as usize };
 
     for i in 0..number_of_heaps {
-        let heap = *process_heaps.add(i);
+        let heap = unsafe { *process_heaps.add(i) };
         if !heap.is_null() {
-            let instance = &mut *(heap as *mut Instance);
+            let instance = unsafe { &mut *(heap as *mut Instance) };
             if instance.magic == INSTANCE_MAGIC {
                 return Some(instance); // Return the instance if the magic value matches
             }
